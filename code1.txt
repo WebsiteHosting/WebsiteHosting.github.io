@@ -1,0 +1,84 @@
+# initialize the time
+T1<-Sys.time() 
+# import the 'e107' library for implementing SVM
+library(e1071)
+# import the 'GA' library for implementing GA
+library(GA)
+# Load the data from the csv file
+setwd('place here the directory of the data')
+data = read.csv("file_name.csv", header = TRUE,sep=";", quote="'")
+#Create a random sample of data for cross-validation
+samp <- sample(1:nrow(data), size=round(0.8*nrow(data)), replace=FALSE)
+# define the training and testing data
+train_data <- data[samp,]
+test_data <- data[-samp,] 
+# define the input and target values of all data
+input <-  subset(data, select = -Target
+y <-  subset(data, select = Target
+# define the fitness function to optimize
+fitnessFunc <- function(x, train_data) {
+  # Retrieve the SVM parameters
+  cost_val <- x[1]
+  gamma_val <- x[2]
+  epsilon_val <- x[3]
+  # define the input and target values of training data
+  input_train <-  subset(train_data, select = -Target
+  y_train <-  subset(train_data, select = Target
+  # compute the SVM model
+  model <- svm(input_train, y_train, type = "eps-regression", kernel = "radial", scale = FALSE, cost = cost_val, gamma = gamma_val, epsilon = epsilon_val)
+  # compute the predicted values based on the SVM model
+  pred <- predict(model, input_train)
+  # compute the mean squared error between the predicted and target values 
+  mse <- mean((predict(model, input_train) - y_train) ^ 2)
+  # return minus the mse beacause by maximizing the function the error is minimized
+  return (-mse)
+}
+# set the SVM parameters (cost, gamma, epsilon) value intervals
+theta_min <- c(cost = 1, gamma = 0.01, epsilon = 0.01)
+theta_max <- c(cost = 10, gamma = 10, epsilon = 0.05)
+# run the genetic algorithm for SVM parameter optimization
+result <- ga(type = "real-valued", fitness = fitnessFunc, train_data,
+               popSize = 20,
+               names = names(theta_min), 
+               min = theta_min, max = theta_max, 
+               population = gaControl("real-valued")$population,
+               selection = gaControl("real-valued")$selection,
+               crossover = gaControl("real-valued")$crossover,
+               mutation = gaControl("real-valued")$mutation,
+               pcrossover = 0.6,
+               pmutation = 0.2,
+               elitism = base::max(1, round(20*0.05)),
+               updatePop = FALSE,
+               postFitness = NULL,
+               maxiter = 900,
+               run = 900,
+               maxFitness = -0.00004
+)
+# get the result summary
+summary(result)
+# get the optimized cost, gamma and epsilon values
+c<-result@solution[1,1]
+g<-result@solution[1,2]
+e<-result@solution[1,3]
+# compute the model for all data with the optimized SVM parameters
+model <- svm(input, y, type = "eps-regression", kernel = "radial", scale = FALSE, cost = c, gamma = g, epsilon = e)
+# compute the predicted values
+pred <- predict(model, input)
+# store the predicted values, if needed, for further analysis
+write.csv(pred, "directory_path/file_name.csv",row.names=F)
+# get the mse of all data
+mse <- mean((pred - y) ^ 2)
+print(mse)
+# get the final time
+T2<-Sys.time() 
+# compute the execution duration
+Tdiff= difftime(T2, T1) 
+print(Tdiff)
+
+
+
+
+
+
+
+

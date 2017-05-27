@@ -1,0 +1,31 @@
+# initialize the time
+T1<-Sys.time() 
+# import the 'e107' library for implementing SVM
+library(e1071)
+# Load the data from the csv file
+setwd('place here the directory of the data')
+data = read.csv("file_name.csv", header = TRUE,sep=";", quote="'")
+# define the input and target values of all data
+input <-  subset(data, select = -Target)
+y <-  subset(data, select = Target)
+# run the grid search for SVM parameter optimization
+tune.out <- tune(svm, Target ~., data=data, kernel='radial', scale = FALSE, type="eps-regression", 
+                 ranges=list(gamma = seq(0.01,10,0.5),epsilon=seq(0.01,0.05,0.005), cost=seq(1,10,0.5)),probability = TRUE, tunecontrol=tune.control(sampling = "fix", fix=0.8))
+# get the summary of the implementation
+summary(tune.out)
+# get the best model
+tunedModel <- tune.out$best.model
+# get the model summary
+summary(tunedModel)
+# get the predicted values
+fitted <-fitted(tunedModel)
+# store the predicted values, if needed, for further analysis
+write.csv(fitted, "D:/sensors/Rstudio/SVM+GA/prediction/data.csv",row.names=F)
+# get the mse of all data
+mse <- mean((fitted - y) ^ 2)
+print(mse)
+# get the final time
+T2<-Sys.time() 
+# compute the execution duration
+Tdiff= difftime(T2, T1) 
+print(Tdiff)
